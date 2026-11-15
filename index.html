@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<title>POV Wand</title>
+<style>
+  :root { --bg:#000; --panel:#111; --line:#262626; --text:#eee; --dim:#8a8a8a; --accent:#00e676; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { background: var(--bg); color: var(--text); font-family: system-ui, Roboto, sans-serif; }
+  body { min-height: 100vh; }
+  #setup { max-width: 520px; margin: 0 auto; padding: 16px 14px 40px; display: flex; flex-direction: column; gap: 14px; }
+  h1 { font-size: 1.3rem; font-weight: 700; letter-spacing: .02em; }
+  h1 span { color: var(--accent); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+  .card h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); font-weight: 600; }
+  label.f { display: flex; flex-direction: column; gap: 6px; font-size: .9rem; color: #bbb; }
+  .lr { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .lr b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+  input[type=text], select { width: 100%; background: #000; color: #fff; border: 1px solid #3a3a3a; border-radius: 9px; padding: 11px 12px; font-size: 1.05rem; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--accent); }
+  input[type=color] { width: 44px; height: 36px; border: 1px solid #3a3a3a; border-radius: 8px; background: #000; padding: 2px; }
+  .icons, .swatches, .presets { display: flex; flex-wrap: wrap; gap: 8px; }
+  .icons button, .swatches button { width: 40px; height: 40px; border-radius: 9px; border: 1px solid #333; background: #000; color: #fff; font-size: 1.2rem; }
+  .swatches button { border: 2px solid #222; }
+  .swatches button.on { border-color: #fff; }
+  .presets .chip { display: flex; align-items: center; background: #000; border: 1px solid #333; border-radius: 20px; overflow: hidden; }
+  .presets .chip button { background: none; border: none; color: #ddd; padding: 8px 12px; font-size: .9rem; }
+  .presets .chip button.x { color: #777; padding-left: 4px; }
+  #preview { width: 100%; display: block; background: #000; border-radius: 8px; image-rendering: pixelated; }
+  #info { font-size: .8rem; color: var(--dim); line-height: 1.4; }
+  #info .warn { color: #ffb74d; }
+  .btn { background: var(--accent); color: #000; font-weight: 700; font-size: 1.1rem; border: none; border-radius: 12px; padding: 15px; }
+  .btn2 { background: #1d1d1d; color: #ddd; font-weight: 600; font-size: .9rem; border: 1px solid #333; border-radius: 10px; padding: 9px 12px; }
+  #status { font-size: .8rem; color: var(--dim); text-align: center; }
+  details summary { cursor: pointer; color: #bbb; font-size: .9rem; }
+  details[open] summary { margin-bottom: 10px; }
+  .tips { font-size: .82rem; color: #999; line-height: 1.5; padding-left: 18px; }
+  .hidden { display: none !important; }
+  #pov { position: fixed; inset: 0; width: 100vw; height: 100vh; background: #000; display: none; touch-action: none; }
+  #hint { position: fixed; left: 0; right: 0; bottom: 24px; text-align: center; color: #333; font-size: .85rem; display: none; pointer-events: none; }
+</style>
+</head>
+<body>
+
+<div id="setup">
+  <h1>POV <span>Wand</span></h1>
+
+  <div class="card">
+    <label class="f">Message
+      <input type="text" id="text" maxlength="40" autocomplete="off" spellcheck="false">
+    </label>
+    <div class="icons" id="iconBar"></div>
+    <canvas id="preview" height="80"></canvas>
+    <div id="info"></div>
+  </div>
+
+  <div class="card">
+    <h2>Text</h2>
+    <label class="f"><div class="lr">Rows (vertical resolution) <b id="rowsV"></b></div>
+      <input type="range" id="rows" min="8" max="48" step="1">
+    </label>
+    <label class="f">Font
+      <select id="font">
+        <option value="condensed">Condensed bold (fits more letters)</option>
+        <option value="sansBold">Sans bold</option>
+        <option value="sans">Sans regular</option>
+        <option value="mono">Mono bold</option>
+        <option value="serif">Serif bold</option>
+      </select>
+    </label>
+    <label class="f"><div class="lr">Letter spacing (dots) <b id="spacingV"></b></div>
+      <input type="range" id="spacing" min="0" max="4" step="1">
+    </label>
+    <div class="lr"><span>ALL CAPS</span><input type="checkbox" id="caps"></div>
+  </div>
+
+  <div class="card">
+    <h2>Colour</h2>
+    <label class="f">Effect
+      <select id="colourMode">
+        <option value="solid">Solid</option>
+        <option value="rainbow">Rainbow across message</option>
+        <option value="letters">Rainbow per letter</option>
+        <option value="vgrad">Top-to-bottom gradient</option>
+      </select>
+    </label>
+    <div id="c1Row" class="f"><div class="lr"><span>Colour</span><input type="color" id="c1"></div>
+      <div class="swatches" id="sw1"></div></div>
+    <div id="c2Row" class="lr"><span>Bottom colour</span><input type="color" id="c2"></div>
+  </div>
+
+  <div class="card">
+    <h2>Motion</h2>
+    <label class="f">Mode
+      <select id="motionMode">
+        <option value="sync">Sensor sync (waits for a swing, matches speed)</option>
+        <option value="fixed">Fixed rhythm (no sensors)</option>
+      </select>
+    </label>
+    <div id="syncOpts" class="card" style="padding:0;border:none;gap:12px">
+      <label class="f"><div class="lr">Start threshold (peak swing speed) <b id="threshV"></b></div>
+        <input type="range" id="thresh" min="0.2" max="1.5" step="0.05">
+      </label>
+    </div>
+    <div id="fixedOpts" class="card" style="padding:0;border:none;gap:12px">
+      <label class="f"><div class="lr">Half-swing time <b id="fixedThV"></b></div>
+        <input type="range" id="fixedTh" min="150" max="900" step="10">
+      </label>
+      <label class="f"><div class="lr">Swing length <b id="fixedLV"></b></div>
+        <input type="range" id="fixedL" min="20" max="90" step="5">
+      </label>
+    </div>
+    <label class="f"><div class="lr">Text span (share of swing used) <b id="spanV"></b></div>
+      <input type="range" id="span" min="40" max="95" step="1">
+    </label>
+    <details>
+      <summary>Fine tuning</summary>
+      <div class="card" style="padding:0;border:none;gap:12px">
+        <label class="f"><div class="lr">Timing trim (fix double image) <b id="trimV"></b></div>
+          <input type="range" id="trim" min="-80" max="80" step="2">
+        </label>
+        <label class="f"><div class="lr">Column width scale <b id="widthV"></b></div>
+          <input type="range" id="width" min="0.5" max="2" step="0.05">
+        </label>
+        <label class="f"><div class="lr">Text height (share of screen) <b id="heightV"></b></div>
+          <input type="range" id="height" min="40" max="96" step="1">
+        </label>
+        <label class="f">Dot shape
+          <select id="dot"><option value="square">Square (brightest)</option><option value="round">Round LEDs</option></select>
+        </label>
+        <div class="lr"><span>Flip direction (if text is mirrored)</span><input type="checkbox" id="flip"></div>
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <h2>Sensor check</h2>
+    <div style="font-size:.82rem;color:#999">Wave the phone here, then read the results. Green = sideways speed, cyan = rotation, white ticks = swings accepted, red = rejected.</div>
+    <canvas id="trace" style="width:100%;height:110px;background:#000;border-radius:8px;display:block"></canvas>
+    <div id="diag" style="font-size:.8rem;color:#bbb;line-height:1.5;font-variant-numeric:tabular-nums"></div>
+    <button class="btn2" id="diagReset">Reset counts</button>
+  </div>
+
+  <div class="card">
+    <h2>Presets</h2>
+    <div class="presets" id="presets"></div>
+    <button class="btn2" id="savePreset">Save current as preset</button>
+  </div>
+
+  <button class="btn" id="start">Start</button>
+  <div id="status">Checking display and sensors…</div>
+
+  <div class="card">
+    <details>
+      <summary>Tips</summary>
+      <ul class="tips">
+        <li>Dark room, screen brightness at max, phone held upright, wave side to side.</li>
+        <li>OLED screens work far better than LCD (true black, no glowing rectangle).</li>
+        <li>Smooth, wide, steady swings give the sharpest text. Horizontal sharpness is capped by refresh rate × swing time, so fewer letters or slower, wider swings help.</li>
+        <li>If the left-to-right and right-to-left swings show two offset copies, adjust Timing trim until they line up.</li>
+        <li>Double-tap the screen (or use Back) to exit.</li>
+      </ul>
+    </details>
+  </div>
+</div>
+
+<canvas id="pov"></canvas>
+<div id="hint">wave to start · double-tap to exit</div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const PX_PER_M = 160 / 0.0254;          // CSS px per metre (on Android, 1 CSS px ≈ 1 dp = 1/160 in)
+const LS_LAST = 'povwand.last', LS_PRESETS = 'povwand.presets';
+
+const DEFAULTS = {
+  text: 'HELLO', rows: 20, font: 'condensed', spacing: 1, caps: true,
+  colourMode: 'solid', c1: '#00ff66', c2: '#2979ff',
+  motionMode: 'sync', thresh: 0.5, fixedTh: 320, fixedL: 45, span: 75,
+  trim: 0, width: 1, height: 82, dot: 'square', flip: false
+};
+const SWATCHES = ['#00ff66', '#ff1744', '#00e5ff', '#ffea00', '#ff6d00', '#d500f9', '#2979ff', '#ffffff'];
+const LETTER_PALETTE = ['#ff1744', '#ff9100', '#ffea00', '#00e676', '#00e5ff', '#2979ff', '#d500f9'];
+
+const FONTS = {
+  condensed: s => `700 ${s}px "Roboto Condensed", sans-serif-condensed, "Arial Narrow", system-ui, sans-serif`,
+  sansBold:  s => `800 ${s}px Roboto, system-ui, sans-serif`,
+  sans:      s => `500 ${s}px Roboto, system-ui, sans-serif`,
+  mono:      s => `700 ${s}px "Roboto Mono", "Droid Sans Mono", monospace`,
+  serif:     s => `700 ${s}px "Noto Serif", Georgia, serif`
+};
+
+// ---------- Icons (drawn in a unit square) ----------
+const dotC = (c, x, y, r) => { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); };
+const ICONS = {
+  heart: { g: '♥', d(c) { c.beginPath(); c.moveTo(.5, .92); c.bezierCurveTo(.05, .62, -.02, .32, .16, .16);
+    c.bezierCurveTo(.3, .04, .46, .1, .5, .26); c.bezierCurveTo(.54, .1, .7, .04, .84, .16);
+    c.bezierCurveTo(1.02, .32, .95, .62, .5, .92); c.closePath(); c.fill(); } },
+  star: { g: '★', d(c) { c.beginPath(); for (let i = 0; i < 10; i++) { const r = i % 2 ? .21 : .5, a = -Math.PI / 2 + i * Math.PI / 5;
+    const x = .5 + r * Math.cos(a), y = .54 + r * Math.sin(a); i ? c.lineTo(x, y) : c.moveTo(x, y); } c.closePath(); c.fill(); } },
+  smile: { g: '☺', d(c) { c.lineWidth = .11; c.beginPath(); c.arc(.5, .5, .42, 0, Math.PI * 2); c.stroke();
+    dotC(c, .35, .38, .075); dotC(c, .65, .38, .075); c.beginPath(); c.arc(.5, .5, .25, .15 * Math.PI, .85 * Math.PI); c.stroke(); } },
+  note: { g: '♪', d(c) { c.beginPath(); c.ellipse(.33, .78, .18, .13, -.4, 0, Math.PI * 2); c.fill();
+    c.fillRect(.43, .12, .09, .67); c.lineWidth = .1; c.beginPath(); c.moveTo(.48, .15); c.lineTo(.8, .27); c.lineTo(.8, .48); c.stroke(); } },
+  bolt: { g: '⚡', d(c) { c.beginPath(); [[.62, .02], [.18, .56], [.46, .56], [.36, .98], [.82, .42], [.54, .42], [.7, .02]]
+    .forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); c.fill(); } },
+  sun: { g: '☀', d(c) { dotC(c, .5, .5, .21); c.lineWidth = .09; for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4;
+    c.beginPath(); c.moveTo(.5 + .32 * Math.cos(a), .5 + .32 * Math.sin(a)); c.lineTo(.5 + .47 * Math.cos(a), .5 + .47 * Math.sin(a)); c.stroke(); } } },
+  arrow: { g: '➜', d(c) { c.beginPath(); [[.04, .38], [.52, .38], [.52, .14], [.96, .5], [.52, .86], [.52, .62], [.04, .62]]
+    .forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); c.fill(); } },
+  check: { g: '✓', d(c) { c.lineWidth = .17; c.beginPath(); c.moveTo(.1, .52); c.lineTo(.4, .8); c.lineTo(.92, .2); c.stroke(); } }
+};
+
+// ---------- Text -> dot matrix ----------
+function tokenize(msg, caps) {
+  const out = [];
+  const seg = (typeof Intl !== 'undefined' && Intl.Segmenter) ? new Intl.Segmenter() : null;
+  const pushText = t => {
+    if (caps) t = t.toUpperCase();
+    const parts = seg ? Array.from(seg.segment(t), s => s.segment) : Array.from(t);
+    parts.forEach(s => out.push({ t: 'c', s }));
+  };
+  const re = /:([a-z]+):/gi; let last = 0, m;
+  while ((m = re.exec(msg))) {
+    const name = m[1].toLowerCase();
+    if (!ICONS[name]) continue;
+    if (m.index > last) pushText(msg.slice(last, m.index));
+    out.push({ t: 'i', n: name }); last = m.index + m[0].length;
+  }
+  if (last < msg.length) pushText(msg.slice(last));
+  return out;
+}
+
+function rasterize(msg, R, fontKey, spacing, caps) {
+  const toks = tokenize(msg, caps);
+  const os = 4, H = R * os;
+  const cv = document.createElement('canvas');
+  let c = cv.getContext('2d');
+  c.font = FONTS[fontKey](100);
+  let asc = 0, desc = 0;
+  for (const k of toks) if (k.t === 'c' && k.s.trim()) {
+    const m = c.measureText(k.s);
+    asc = Math.max(asc, m.actualBoundingBoxAscent); desc = Math.max(desc, m.actualBoundingBoxDescent);
+  }
+  if (asc + desc <= 0) { asc = 72; desc = 0; }
+  const scale = (H * 0.97) / (asc + desc), font = FONTS[fontKey](100 * scale);
+  c.font = font;
+  const gap = spacing * os, iconSz = H * 0.92;
+  const items = []; let x = 0, letter = 0;
+  for (const k of toks) {
+    const blank = k.t === 'c' && !k.s.trim();
+    const w = k.t === 'c' ? c.measureText(k.s).width : iconSz;
+    items.push({ k, x, w, letter: blank ? -1 : letter++ });
+    x += w + gap;
+  }
+  cv.width = Math.max(os, Math.ceil(x) + os); cv.height = H;
+  c = cv.getContext('2d', { willReadFrequently: true });
+  c.font = font; c.fillStyle = '#fff'; c.strokeStyle = '#fff'; c.textBaseline = 'alphabetic';
+  const base = asc * scale + H * 0.015;
+  for (const it of items) {
+    if (it.k.t === 'c') c.fillText(it.k.s, it.x, base);
+    else { c.save(); c.translate(it.x, (H - iconSz) / 2); c.scale(iconSz, iconSz); c.lineCap = 'round'; c.lineJoin = 'round'; ICONS[it.k.n].d(c); c.restore(); }
+  }
+  const W = cv.width, C0 = Math.ceil(W / os);
+  const data = c.getImageData(0, 0, W, H).data;
+  const bits = new Uint8Array(C0 * R), letters = new Int16Array(C0).fill(-1);
+  for (let col = 0; col < C0; col++) {
+    const x0 = col * os, x1 = Math.min(W, x0 + os);
+    for (let row = 0; row < R; row++) {
+      let sum = 0;
+      for (let y = row * os; y < row * os + os; y++) for (let xx = x0; xx < x1; xx++) sum += data[(y * W + xx) * 4 + 3];
+      bits[col * R + row] = sum / (255 * os * os) > 0.42 ? 1 : 0;
+    }
+  }
+  for (const it of items) {
+    const a = Math.floor(it.x / os), b = Math.min(C0 - 1, Math.floor((it.x + it.w + gap - 1) / os));
+    for (let col = a; col <= b; col++) letters[col] = it.letter;
+  }
+  const empty = col => { for (let r = 0; r < R; r++) if (bits[col * R + r]) return false; return true; };
+  let first = 0, last = C0 - 1;
+  while (first < C0 && empty(first)) first++;
+  while (last > first && empty(last)) last--;
+  if (first >= C0) return { C: 1, R, bits: new Uint8Array(R), letters: new Int16Array(1).fill(-1) };
+  return { C: last - first + 1, R, bits: bits.slice(first * R, (last + 1) * R), letters: letters.slice(first, last + 1) };
+}
+
+function hexToRgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+function buildColours(mx, S) {
+  const { C, R } = mx;
+  if (S.colourMode === 'solid') return { solid: S.c1 };
+  const arr = new Array(C * R);
+  const a = hexToRgb(S.c1), b = hexToRgb(S.c2);
+  for (let col = 0; col < C; col++) for (let r = 0; r < R; r++) {
+    let s;
+    if (S.colourMode === 'rainbow') s = `hsl(${Math.round(col / Math.max(1, C - 1) * 300)},100%,55%)`;
+    else if (S.colourMode === 'letters') { const l = mx.letters[col]; s = LETTER_PALETTE[(l < 0 ? 0 : l) % LETTER_PALETTE.length]; }
+    else { const t = R > 1 ? r / (R - 1) : 0; s = `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(',')})`; }
+    arr[col * R + r] = s;
+  }
+  return { arr };
+}
+
+// BEGIN TRACKER
+// Swing tracker. Finds swing reversals from either:
+//  - gyroscope angular velocity (preferred when the wave has rotation, which most wrist/forearm
+//    waves do: zero crossings are exact, no integration drift or lag), or
+//  - leaky-integrated lateral acceleration (fallback for pure sideways translation).
+// Each half-swing is modelled as a cosine sweep so we know where the phone is at any instant.
+class SwingTracker {
+  constructor() { this.tau = 0.8; this.minPeak = 0.5; this.resetStats(); this.reset(); }
+  resetStats() { this.stats = { ok: 0, weak: 0, short: 0, long: 0, last: null }; this.marks = []; this.trace = []; }
+  reset() {
+    this.v = 0; this.bias = 0; this.lastT = null; this.aPrev = null;
+    this.rmsY = 0; this.rmsZ = 0; this.corr = 0; this.axis = 'y'; this.hasGyro = false;
+    this.sigPrev = 0; this.sign = 0; this.zeroT = null; this.peakV = 0; this.peakG = 0;
+    this.Th = 0.3; this.L = 0.4; this.valid = 0; this.dir = 1; this.tRev = null; this.revGyro = false;
+    this.rate = 0; this.lastSample = 0; this.mode = 'accel';
+  }
+  push(ax, gy, gz, t) {
+    if (ax == null || !isFinite(ax)) return;
+    this.lastSample = t;
+    if (this.lastT === null) { this.lastT = t; this.bias = ax; return; }
+    const dt = t - this.lastT; this.lastT = t;
+    if (dt <= 0) return;
+    if (dt > 0.15) { this.v = 0; this.sign = 0; this.sigPrev = 0; this.valid = 0; this.aPrev = null; return; }
+    this.rate = this.rate ? this.rate * 0.95 + 0.05 / dt : 1 / dt;
+
+    // Accelerometer -> lateral velocity estimate (m/s)
+    this.bias += (ax - this.bias) * Math.min(1, dt / 2);
+    const a = ax - this.bias;
+    const aMid = this.aPrev == null ? a : (a + this.aPrev) / 2;
+    this.aPrev = a;
+    this.v = this.v * (1 - dt / this.tau) + aMid * dt;
+    this.peakV = Math.max(this.peakV, Math.abs(this.v));
+
+    // Gyro: pick the axis carrying the swing, learn its sign relative to lateral velocity
+    let g = null;
+    if (gy != null && gz != null && isFinite(gy) && isFinite(gz)) {
+      this.hasGyro = true;
+      const k = Math.min(1, dt / 0.5);
+      this.rmsY += (gy * gy - this.rmsY) * k; this.rmsZ += (gz * gz - this.rmsZ) * k;
+      this.axis = this.rmsY >= this.rmsZ ? 'y' : 'z';
+      g = this.axis === 'y' ? gy : gz;
+      this.corr += (g * this.v - this.corr) * Math.min(1, dt / 1.0);
+      this.peakG = Math.max(this.peakG, Math.abs(g));
+    }
+    const gRms = Math.sqrt(Math.max(this.rmsY, this.rmsZ));
+    const useGyro = g != null && gRms > 40 && Math.abs(this.corr) > 0.5;
+    this.mode = useGyro ? 'gyro' : 'accel';
+    const sig = useGyro ? g * Math.sign(this.corr) : this.v;   // > 0 means moving toward device +x
+    const hyst = useGyro ? 8 : 0.04;
+
+    if (this.sigPrev !== 0 && this.sigPrev * sig <= 0) this.zeroT = t - dt * (sig / ((sig - this.sigPrev) || 1e-9));
+    if (sig !== 0) this.sigPrev = sig;
+    let s = this.sign;
+    if (sig > hyst) s = 1; else if (sig < -hyst) s = -1;
+    if (s !== this.sign) {
+      if (this.sign !== 0) this.reversal(this.zeroT ?? t, s, useGyro);
+      this.sign = s;
+    }
+    this.trace.push({ t, v: this.v, g });
+    while (this.trace.length && this.trace[0].t < t - 3) this.trace.shift();
+  }
+  reversal(tc, newDir, gyro) {
+    if (this.tRev !== null) {
+      const dur = tc - this.tRev;
+      const w = Math.PI / Math.max(dur, 0.01), wt = w * this.tau;
+      const peak = this.peakV * Math.sqrt(1 + wt * wt) / wt;   // undo leaky-integrator attenuation
+      const strong = peak > this.minPeak || (gyro && this.peakG > 90);
+      const noticeable = peak > this.minPeak * 0.3 || this.peakG > 30;
+      let ok = false, why = '';
+      if (dur < 0.07) why = 'short'; else if (dur > 1.5) why = 'long'; else if (!strong) why = 'weak'; else ok = true;
+      if (ok) {
+        const L = Math.min(1.5, Math.max(0.1, 2 * peak * dur / Math.PI));   // swing length, cosine sweep
+        this.Th = this.valid ? this.Th * 0.4 + dur * 0.6 : dur;
+        this.L = this.valid ? this.L * 0.5 + L * 0.5 : L;
+        this.valid++;
+      } else this.valid = 0;
+      if (ok || noticeable) {
+        this.stats[ok ? 'ok' : why]++;
+        this.stats.last = { dur, peak, peakG: this.peakG, L: this.L, mode: gyro ? 'gyro' : 'accel', ok, why };
+        this.marks.push({ t: tc, ok });
+        while (this.marks.length && this.marks[0].t < tc - 3) this.marks.shift();
+      }
+    }
+    this.tRev = tc; this.revGyro = gyro; this.peakV = 0; this.peakG = 0; this.dir = newDir;
+  }
+  // State at time t. Returns null when not mid-swing.
+  query(t, flip) {
+    if (!this.valid || this.tRev === null) return null;
+    const w = Math.PI / this.Th;
+    const comp = this.revGyro ? 0 : Math.atan(1 / (w * this.tau)) / w;   // leaky integrator phase lead
+    const phi = (t - (this.tRev + comp)) / this.Th;
+    if (phi > 2.5 || t - this.lastSample > 0.3) { this.valid = 0; return null; }
+    if (phi < 0 || phi > 1.05) return null;
+    const s = (1 - Math.cos(Math.PI * Math.min(1, phi))) / 2;
+    const dir = flip ? -this.dir : this.dir;
+    return { u: dir > 0 ? s : 1 - s, L: this.L, Th: this.Th, id: this.tRev };
+  }
+}
+// END TRACKER
+
+class FixedRhythm {
+  constructor(Th, L) { this.Th = Th; this.L = L; this.t0 = performance.now() / 1000; }
+  query(t, flip) {
+    const k = Math.floor((t - this.t0) / this.Th), phi = (t - this.t0) / this.Th - k;
+    const s = (1 - Math.cos(Math.PI * phi)) / 2;
+    let dir = k % 2 ? -1 : 1; if (flip) dir = -dir;
+    return { u: dir > 0 ? s : 1 - s, L: this.L, Th: this.Th, id: k };
+  }
+}
+
+// ---------- Settings / UI ----------
+let S = { ...DEFAULTS };
+try { Object.assign(S, JSON.parse(localStorage.getItem(LS_LAST) || '{}')); } catch (e) {}
+const FIELDS = ['text', 'rows', 'font', 'spacing', 'caps', 'colourMode', 'c1', 'c2', 'motionMode', 'thresh', 'fixedTh', 'fixedL', 'span', 'trim', 'width', 'height', 'dot', 'flip'];
+const NUMERIC = new Set(['rows', 'spacing', 'thresh', 'fixedTh', 'fixedL', 'span', 'trim', 'width', 'height']);
+
+function applyToUI() {
+  for (const f of FIELDS) { const el = $(f); if (el.type === 'checkbox') el.checked = !!S[f]; else el.value = S[f]; }
+  refreshLabels(); renderSwatches();
+}
+function readUI() {
+  for (const f of FIELDS) { const el = $(f); S[f] = el.type === 'checkbox' ? el.checked : NUMERIC.has(f) ? parseFloat(el.value) : el.value; }
+  try { localStorage.setItem(LS_LAST, JSON.stringify(S)); } catch (e) {}
+}
+function refreshLabels() {
+  $('rowsV').textContent = S.rows; $('spacingV').textContent = S.spacing;
+  $('threshV').textContent = S.thresh.toFixed(2) + ' m/s'; $('fixedThV').textContent = S.fixedTh + ' ms';
+  $('fixedLV').textContent = S.fixedL + ' cm'; $('spanV').textContent = S.span + '%';
+  $('trimV').textContent = (S.trim > 0 ? '+' : '') + S.trim + ' ms'; $('widthV').textContent = S.width.toFixed(2) + '×';
+  $('heightV').textContent = S.height + '%';
+  $('c1Row').classList.toggle('hidden', S.colourMode === 'rainbow' || S.colourMode === 'letters');
+  $('c2Row').classList.toggle('hidden', S.colourMode !== 'vgrad');
+  $('syncOpts').classList.toggle('hidden', S.motionMode !== 'sync');
+  $('fixedOpts').classList.toggle('hidden', S.motionMode !== 'fixed');
+}
+function renderSwatches() {
+  const box = $('sw1'); box.innerHTML = '';
+  for (const c of SWATCHES) {
+    const b = document.createElement('button'); b.style.background = c; b.className = c.toLowerCase() === S.c1.toLowerCase() ? 'on' : '';
+    b.onclick = () => { $('c1').value = c; onChange(); }; box.appendChild(b);
+  }
+}
+
+let MX = null, COL = null, refreshHz = 60;
+function rebuild() {
+  MX = rasterize(S.text || ' ', S.rows, S.font, S.spacing, S.caps);
+  COL = buildColours(MX, S);
+  drawPreview();
+}
+function drawPreview() {
+  const cv = $('preview'), dpr = window.devicePixelRatio || 1;
+  const cssW = cv.clientWidth || 300;
+  const cell = Math.max(1, Math.min(cssW * dpr / MX.C, 140 * dpr / MX.R));
+  cv.width = Math.round(cssW * dpr); cv.height = Math.round(cell * MX.R + 8 * dpr);
+  cv.style.height = (cv.height / dpr) + 'px';
+  const c = cv.getContext('2d'); c.fillStyle = '#000'; c.fillRect(0, 0, cv.width, cv.height);
+  const x0 = (cv.width - cell * MX.C) / 2, y0 = 4 * dpr, d = cell > 3 ? cell * 0.82 : cell;
+  for (let col = 0; col < MX.C; col++) for (let r = 0; r < MX.R; r++) {
+    const on = MX.bits[col * MX.R + r];
+    if (!on && cell < 4) continue;
+    c.fillStyle = on ? (COL.solid || COL.arr[col * MX.R + r]) : '#161616';
+    c.fillRect(x0 + col * cell, y0 + r * cell, d, d);
+  }
+  // Rough sharpness estimate for a typical 0.3 s half-swing
+  const span = S.span / 100, frac = 1 - 2 * Math.acos(span) / Math.PI;
+  const frames = Math.max(1, Math.round(frac * 0.3 * refreshHz));
+  const per = MX.C / frames;
+  let msg = `${MX.C} columns × ${MX.R} rows. At ${Math.round(refreshHz)} Hz a typical swing gives about ${frames} frames across the text (${per.toFixed(1)} columns per frame).`;
+  if (per > 3.5) msg += ` <span class="warn">That's wide for one pass. Expect some horizontal blur; use fewer letters, the condensed font, or slower, wider swings.</span>`;
+  $('info').innerHTML = msg;
+}
+
+let pending = false;
+function onChange() {
+  readUI(); refreshLabels(); renderSwatches();
+  if (!pending) { pending = true; requestAnimationFrame(() => { pending = false; rebuild(); }); }
+}
+
+// Icon bar
+for (const [name, ic] of Object.entries(ICONS)) {
+  const b = document.createElement('button'); b.textContent = ic.g; b.title = name;
+  b.onclick = () => {
+    const el = $('text'), tok = `:${name}:`, p = el.selectionStart ?? el.value.length;
+    el.value = (el.value.slice(0, p) + tok + el.value.slice(el.selectionEnd ?? p)).slice(0, 40);
+    el.focus(); el.setSelectionRange(p + tok.length, p + tok.length); onChange();
+  };
+  $('iconBar').appendChild(b);
+}
+
+// Presets
+function loadPresets() { try { return JSON.parse(localStorage.getItem(LS_PRESETS) || '[]'); } catch (e) { return []; } }
+function savePresets(p) { try { localStorage.setItem(LS_PRESETS, JSON.stringify(p)); } catch (e) {} }
+function renderPresets() {
+  const box = $('presets'), list = loadPresets(); box.innerHTML = '';
+  if (!list.length) { box.innerHTML = '<span style="color:#666;font-size:.85rem">No presets yet.</span>'; return; }
+  list.forEach((p, i) => {
+    const chip = document.createElement('div'); chip.className = 'chip';
+    const a = document.createElement('button'); a.textContent = p.name;
+    a.onclick = () => { S = { ...DEFAULTS, ...p.s }; applyToUI(); onChange(); };
+    const x = document.createElement('button'); x.className = 'x'; x.textContent = '✕';
+    x.onclick = () => { const l = loadPresets(); l.splice(i, 1); savePresets(l); renderPresets(); };
+    chip.append(a, x); box.appendChild(chip);
+  });
+}
+$('savePreset').onclick = () => {
+  readUI();
+  const list = loadPresets().filter(p => p.name !== (S.text || ' ').slice(0, 24));
+  list.unshift({ name: (S.text || ' ').slice(0, 24), s: { ...S } });
+  savePresets(list.slice(0, 12)); renderPresets();
+};
+
+FIELDS.forEach(f => $(f).addEventListener('input', onChange));
+window.addEventListener('resize', () => { if (!running && MX) drawPreview(); });
+
+// ---------- Sensors & display probe ----------
+const tracker = new SwingTracker();
+let sensorSeen = false;
+let accelSource = 'none';
+function onMotion(e) {
+  let ax = null;
+  if (e.acceleration && e.acceleration.x != null) { ax = e.acceleration.x; accelSource = 'linear accel'; }
+  else if (e.accelerationIncludingGravity && e.accelerationIncludingGravity.x != null) { ax = e.accelerationIncludingGravity.x; accelSource = 'accel incl. gravity'; }
+  if (ax == null) return;
+  sensorSeen = true;
+  const rr = e.rotationRate;
+  tracker.push(ax, rr ? rr.gamma : null, rr ? rr.alpha : null, performance.now() / 1000);
+}
+window.addEventListener('devicemotion', onMotion);
+
+function measureRefresh() {
+  const ts = []; let n = 0;
+  const step = t => { ts.push(t); if (++n < 90) requestAnimationFrame(step); else {
+    const d = ts.slice(1).map((v, i) => v - ts[i]).sort((a, b) => a - b);
+    const med = d[d.length >> 1]; if (med > 0) refreshHz = 1000 / med; if (MX) drawPreview(); updateStatus(); } };
+  requestAnimationFrame(step);
+}
+function updateStatus() {
+  const sensor = !('DeviceMotionEvent' in window) ? 'no motion sensor API'
+    : !window.isSecureContext ? 'motion needs https'
+    : sensorSeen ? `motion OK (${Math.round(tracker.rate || 0)} Hz)` : 'motion: no data yet';
+  $('status').textContent = `Display ${Math.round(refreshHz)} Hz · ${sensor}`;
+}
+setInterval(() => { if (!running) updateStatus(); }, 1000);
+
+// ---------- POV mode ----------
+const cv = $('pov'); const ctx = cv.getContext('2d', { alpha: false });
+let running = false, source = null, prev = null, frameDt = 1 / 60, lastTs = 0, dtHist = [], wakeLock = null, wasFs = false, hintOn = null;
+
+function sizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(window.innerWidth * dpr); cv.height = Math.round(window.innerHeight * dpr);
+}
+function setHint(on, text) {
+  const key = on ? text : '';
+  if (key !== hintOn) { hintOn = key; $('hint').style.display = on ? 'block' : 'none'; if (on) $('hint').textContent = text; }
+}
+
+function frame(ts) {
+  if (!running) return;
+  if (lastTs) { dtHist.push((ts - lastTs) / 1000); if (dtHist.length > 30) dtHist.shift();
+    const s = [...dtHist].sort((a, b) => a - b); frameDt = s[s.length >> 1]; }
+  lastTs = ts;
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, cv.width, cv.height);
+
+  // Predict where the phone will be while this frame is on screen (~1 frame latency + trim).
+  const t = performance.now() / 1000 + frameDt + S.trim / 1000;
+  const q = source.query(t, S.flip);
+  if (!q) {
+    prev = null;
+    if (S.motionMode === 'sync') {
+      const noData = performance.now() / 1000 - tracker.lastSample > 1;
+      setHint(true, noData ? 'no motion data from Chrome · page must be opened over https · double-tap to exit' : 'wave to start · double-tap to exit');
+    } else setHint(false);
+    requestAnimationFrame(frame); return;
+  }
+  setHint(false);
+
+  const span = S.span / 100, m = (1 - span) / 2, C = MX.C, R = MX.R;
+  const pos = (q.u - m) / span * C;                 // phone position in text-column units
+  if (prev && prev.id === q.id) {
+    // Draw every column the phone passes over between the previous frame and this one,
+    // each at its true offset from the screen centre so they land in the right place in the air.
+    const lo = Math.min(prev.pos, pos), hi = Math.max(prev.pos, pos), mid = (lo + hi) / 2;
+    const k0 = Math.max(0, Math.ceil(lo - 0.5)), k1 = Math.min(C - 1, Math.floor(hi - 0.5 - 1e-9));
+    if (k1 >= k0) {
+      const dpr = window.devicePixelRatio || 1;
+      let pitch = (span * q.L / C) * PX_PER_M * dpr * S.width;
+      pitch = Math.min(Math.max(pitch, 2 * dpr), cv.width * 0.4 / (k1 - k0 + 1));
+      const usable = cv.height * S.height / 100, cell = usable / R, top = (cv.height - usable) / 2;
+      const dotH = cell * 0.86, w = Math.max(pitch * (S.dot === 'round' ? 0.9 : 1), 1.5 * dpr), cx = cv.width / 2;
+      if (COL.solid) ctx.fillStyle = COL.solid;
+      for (let k = k0; k <= k1; k++) {
+        const x = cx + (k + 0.5 - mid) * pitch;
+        for (let r = 0; r < R; r++) {
+          if (!MX.bits[k * R + r]) continue;
+          if (!COL.solid) ctx.fillStyle = COL.arr[k * R + r];
+          const y = top + r * cell + (cell - dotH) / 2;
+          if (S.dot === 'round') { ctx.beginPath(); ctx.ellipse(x, y + dotH / 2, w / 2, dotH / 2, 0, 0, Math.PI * 2); ctx.fill(); }
+          else ctx.fillRect(x - w / 2, y, w, dotH);
+        }
+      }
+    }
+  }
+  prev = { pos, id: q.id };
+  requestAnimationFrame(frame);
+}
+
+async function start() {
+  readUI(); rebuild();
+  if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+    try { await DeviceMotionEvent.requestPermission(); } catch (e) {}
+  }
+  tracker.reset(); tracker.minPeak = S.thresh;
+  source = S.motionMode === 'sync' ? tracker : new FixedRhythm(S.fixedTh / 1000, S.fixedL / 100);
+  $('setup').style.display = 'none'; cv.style.display = 'block';
+  try { await document.documentElement.requestFullscreen({ navigationUI: 'hide' }); wasFs = true; } catch (e) { wasFs = false; }
+  try { await screen.orientation.lock('portrait'); } catch (e) {}
+  try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+  sizeCanvas(); prev = null; lastTs = 0; dtHist = []; hintOn = null; running = true;
+  requestAnimationFrame(frame);
+}
+function stop() {
+  if (!running) return;
+  running = false; setHint(false); diagLoop();
+  cv.style.display = 'none'; $('setup').style.display = 'flex';
+  try { wakeLock && wakeLock.release(); } catch (e) {} wakeLock = null;
+  try { screen.orientation.unlock(); } catch (e) {}
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  drawPreview();
+}
+$('start').onclick = start;
+let lastTap = 0;
+cv.addEventListener('pointerdown', () => { const n = performance.now(); if (n - lastTap < 380) stop(); lastTap = n; });
+document.addEventListener('fullscreenchange', () => { if (running && wasFs && !document.fullscreenElement) stop(); });
+document.addEventListener('visibilitychange', async () => {
+  if (running && document.visibilityState === 'visible') { try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {} }
+});
+window.addEventListener('resize', () => { if (running) sizeCanvas(); });
+
+// ---------- Sensor check panel ----------
+$('diagReset').onclick = () => tracker.resetStats();
+function diagLoop() {
+  if (running) return;
+  tracker.minPeak = S.thresh;
+  const cvT = $('trace'), dpr = window.devicePixelRatio || 1;
+  const W = Math.round(cvT.clientWidth * dpr), H = Math.round(cvT.clientHeight * dpr);
+  if (cvT.width !== W || cvT.height !== H) { cvT.width = W; cvT.height = H; }
+  const c = cvT.getContext('2d'); c.fillStyle = '#000'; c.fillRect(0, 0, W, H);
+  c.strokeStyle = '#222'; c.beginPath(); c.moveTo(0, H / 2); c.lineTo(W, H / 2); c.stroke();
+  const now = performance.now() / 1000, X = t => W - (now - t) / 3 * W;
+  for (const m of tracker.marks) { c.strokeStyle = m.ok ? '#fff' : '#ff1744'; c.beginPath(); c.moveTo(X(m.t), 0); c.lineTo(X(m.t), H); c.stroke(); }
+  const line = (key, scale, col) => {
+    c.strokeStyle = col; c.lineWidth = 1.5 * dpr; c.beginPath(); let started = false;
+    for (const p of tracker.trace) { if (p[key] == null) continue; const y = H / 2 - Math.max(-1, Math.min(1, p[key] / scale)) * H * 0.45;
+      started ? c.lineTo(X(p.t), y) : (c.moveTo(X(p.t), y), started = true); }
+    c.stroke(); c.lineWidth = 1;
+  };
+  line('v', 3, '#00e676'); line('g', 400, '#00e5ff');
+  const st = tracker.stats, l = st.last;
+  let html = `Accel: ${accelSource} · Gyro: ${tracker.hasGyro ? 'yes (axis ' + tracker.axis + ')' : 'not reported'} · Detecting with: <b>${tracker.mode}</b> · ${Math.round(tracker.rate || 0)} Hz<br>`;
+  html += `Half-swings accepted <b>${st.ok}</b> · too weak ${st.weak} · too fast ${st.short} · too slow ${st.long}<br>`;
+  html += l ? `Last: ${(l.dur * 1000).toFixed(0)} ms, ${l.peak.toFixed(2)} m/s, ${l.peakG.toFixed(0)}°/s, length ${(l.L * 100).toFixed(0)} cm, ${l.ok ? '<span style="color:#00e676">accepted</span>' : '<span style="color:#ff5252">rejected (' + l.why + ')</span>'}`
+            : (sensorSeen ? 'No swings yet. Wave side to side.' : '<span style="color:#ffb74d">No motion data yet. If this stays, Chrome is not giving this page sensor access (it must be opened over https).</span>');
+  $('diag').innerHTML = html;
+  requestAnimationFrame(diagLoop);
+}
+
+applyToUI(); renderPresets(); rebuild(); measureRefresh(); updateStatus(); diagLoop();
+</script>
+</body>
+</html>
