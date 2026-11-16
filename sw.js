@@ -1,5 +1,5 @@
 // POV Wand offline cache. Bump VERSION whenever you upload a new index.html.
-const VERSION = 'v4';
+const VERSION = 'v5';
 const CACHE = 'pov-wand-' + VERSION;
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 

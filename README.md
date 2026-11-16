@@ -23,11 +23,10 @@ readable text that seems to hang in the air.
 - Short messages read best. 3 to 6 letters at a time works well. Longer messages are split into parts
   automatically and shown one after another. Type `/` to force a break.
 - Add icons with `:heart:`, `:star:`, `:smile:`, `:note:`, `:bolt:`, `:sun:`, `:arrow:` or `:check:`.
-- Text looks doubled? Adjust **Timing trim**.
-- Text looks mirrored? Turn on **Flip direction**.
+- First time on a new phone? Open **Calibration** and work through it in order: sensor check, then
+  **Flip direction** if the text is mirrored, then **Timing trim** if it looks doubled, then
+  **Column width scale**. The − and + buttons make small adjustments easier than dragging.
 - Letters too squashed or stretched? Adjust **Text span** (65 to 85% is the useful range) or **Column width scale**.
-- The **Sensor check** panel shows whether the phone's motion sensors are working and how swings are
-  being detected.
 - No motion sensors, or they aren't working? Switch **Motion** to **Fixed rhythm** and wave in time with it.
 - Save settings you like with **Save current as preset**.
 

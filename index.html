@@ -10,38 +10,55 @@
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
-  :root { --bg:#000; --panel:#111; --line:#262626; --text:#eee; --dim:#8a8a8a; --accent:#00e676; }
+  :root { --bg:#000; --panel:#111; --line:#262626; --text:#eee; --soft:#bbb; --dim:#8a8a8a; --accent:#00e676; --warn:#ffb74d; --bad:#ff5252; }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body { background: var(--bg); color: var(--text); font-family: system-ui, Roboto, sans-serif; }
   body { min-height: 100vh; }
-  #setup { max-width: 520px; margin: 0 auto; padding: 16px 14px 40px; display: flex; flex-direction: column; gap: 14px; }
+  #setup { max-width: 520px; margin: 0 auto; padding: 16px 14px 0; display: flex; flex-direction: column; gap: 14px; }
   h1 { font-size: 1.3rem; font-weight: 700; letter-spacing: .02em; }
   h1 span { color: var(--accent); }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
-  .card h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); font-weight: 600; }
-  label.f { display: flex; flex-direction: column; gap: 6px; font-size: .9rem; color: #bbb; }
+  .card h2, .card h3, .sumh { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); font-weight: 600; }
+  .card h3 { margin-top: 4px; }
+  .sub { display: flex; flex-direction: column; gap: 12px; }
+  .note { font-size: .82rem; color: #999; line-height: 1.45; }
+  .f { display: flex; flex-direction: column; gap: 4px; font-size: .9rem; color: var(--soft); }
   .lr { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
   .lr b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
-  input[type=text], select { width: 100%; background: #000; color: #fff; border: 1px solid #3a3a3a; border-radius: 9px; padding: 11px 12px; font-size: 1.05rem; }
-  input[type=range] { width: 100%; accent-color: var(--accent); }
-  input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--accent); }
-  input[type=color] { width: 44px; height: 36px; border: 1px solid #3a3a3a; border-radius: 8px; background: #000; padding: 2px; }
-  .icons, .swatches, .presets { display: flex; flex-wrap: wrap; gap: 8px; }
-  .icons button, .swatches button { width: 40px; height: 40px; border-radius: 9px; border: 1px solid #333; background: #000; color: #fff; font-size: 1.2rem; }
+  label.toggle { min-height: 44px; font-size: .9rem; color: var(--soft); }
+  input[type=text], select { width: 100%; min-height: 46px; background: #000; color: #fff; border: 1px solid #3a3a3a; border-radius: 9px; padding: 10px 12px; font-size: 1.05rem; }
+  input[type=range] { width: 100%; height: 36px; margin: 0; accent-color: var(--accent); }
+  input[type=checkbox] { flex: none; width: 26px; height: 26px; accent-color: var(--accent); }
+  input[type=color] { flex: none; width: 48px; height: 40px; border: 1px solid #3a3a3a; border-radius: 8px; background: #000; padding: 2px; }
+  .nudge { display: flex; align-items: center; gap: 8px; }
+  .nudge button { flex: none; width: 44px; height: 40px; border-radius: 10px; border: 1px solid #333; background: #1d1d1d; color: #ddd; font-size: 1.3rem; line-height: 1; }
+  .icons, .swatches { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+  .icons button, .swatches button { width: 100%; aspect-ratio: 1; padding: 0; border-radius: 9px; border: 1px solid #333; background: #000; color: #fff; font-size: 1.15rem; }
   .swatches button { border: 2px solid #222; }
   .swatches button.on { border-color: #fff; }
-  .presets .chip { display: flex; align-items: center; background: #000; border: 1px solid #333; border-radius: 20px; overflow: hidden; }
-  .presets .chip button { background: none; border: none; color: #ddd; padding: 8px 12px; font-size: .9rem; }
-  .presets .chip button.x { color: #777; padding-left: 4px; }
+  .presets { display: flex; flex-wrap: wrap; gap: 8px; }
+  .presets .chip { display: flex; align-items: center; background: #000; border: 1px solid #333; border-radius: 22px; overflow: hidden; }
+  .presets .chip button { background: none; border: none; color: #ddd; padding: 12px 14px; font-size: .9rem; }
+  .presets .chip button.x { color: #777; padding-left: 6px; }
+  .empty { color: #666; font-size: .85rem; }
   #preview { width: 100%; display: block; background: #000; border-radius: 8px; image-rendering: pixelated; }
   #info { font-size: .8rem; color: var(--dim); line-height: 1.4; }
-  #info .warn { color: #ffb74d; }
-  .btn { background: var(--accent); color: #000; font-weight: 700; font-size: 1.1rem; border: none; border-radius: 12px; padding: 15px; }
-  .btn2 { background: #1d1d1d; color: #ddd; font-weight: 600; font-size: .9rem; border: 1px solid #333; border-radius: 10px; padding: 9px 12px; }
-  #status { font-size: .8rem; color: var(--dim); text-align: center; }
-  details summary { cursor: pointer; color: #bbb; font-size: .9rem; }
-  details[open] summary { margin-bottom: 10px; }
+  .ok { color: var(--accent); } .bad { color: var(--bad); } .warn { color: var(--warn); }
+  .btn { width: 100%; background: var(--accent); color: #000; font-weight: 700; font-size: 1.1rem; border: none; border-radius: 12px; padding: 15px; }
+  .btn2 { min-height: 44px; background: #1d1d1d; color: #ddd; font-weight: 600; font-size: .9rem; border: 1px solid #333; border-radius: 10px; padding: 10px 12px; }
+  details summary { list-style: none; cursor: pointer; min-height: 44px; margin: -6px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--soft); font-size: .95rem; }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::after { content: '▾'; color: var(--dim); font-size: 1rem; transition: transform .15s; }
+  details[open] summary { margin-bottom: 8px; }
+  details[open] summary::after { transform: rotate(180deg); }
+  .sumhint { flex: 1; color: #666; font-size: .8rem; }
   .tips { font-size: .82rem; color: #999; line-height: 1.5; padding-left: 18px; }
+  #trace { width: 100%; height: 110px; background: #000; border-radius: 8px; display: block; }
+  #diag { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: .8rem; color: var(--soft); line-height: 1.4; font-variant-numeric: tabular-nums; }
+  #diag dt { color: var(--dim); }
+  #diag .wide { grid-column: 1 / -1; }
+  #startBar { position: sticky; bottom: 0; margin: 0 -14px; padding: 18px 14px calc(10px + env(safe-area-inset-bottom)); background: linear-gradient(rgba(0,0,0,0), #000 18px); display: flex; flex-direction: column; gap: 6px; }
+  #status { font-size: .75rem; color: var(--dim); text-align: center; }
   .hidden { display: none !important; }
   #pov { position: fixed; inset: 0; width: 100vw; height: 100vh; background: #000; display: none; touch-action: none; }
   #hint { position: fixed; left: 0; right: 0; bottom: 24px; text-align: center; color: #333; font-size: .85rem; display: none; pointer-events: none; }
@@ -57,6 +74,8 @@
       <input type="text" id="text" maxlength="150" autocomplete="off" spellcheck="false">
     </label>
     <div class="icons" id="iconBar"></div>
+    <canvas id="preview" height="80"></canvas>
+    <div id="info"></div>
     <label class="f">Long messages
       <select id="parts">
         <option value="auto">Auto split to fit (recommended)</option>
@@ -71,8 +90,12 @@
     <label class="f" id="partSecRow"><div class="lr">Time per part <b id="partSecV"></b></div>
       <input type="range" id="partSec" min="0.5" max="6" step="0.25">
     </label>
-    <canvas id="preview" height="80"></canvas>
-    <div id="info"></div>
+  </div>
+
+  <div class="card">
+    <h2>Presets</h2>
+    <div class="presets" id="presets"></div>
+    <button class="btn2" id="savePreset">Save current as preset</button>
   </div>
 
   <div class="card">
@@ -92,7 +115,13 @@
     <label class="f"><div class="lr">Letter spacing (dots) <b id="spacingV"></b></div>
       <input type="range" id="spacing" min="0" max="4" step="1">
     </label>
-    <div class="lr"><span>ALL CAPS</span><input type="checkbox" id="caps"></div>
+    <label class="f"><div class="lr">Text height (share of screen) <b id="heightV"></b></div>
+      <input type="range" id="height" min="40" max="96" step="1">
+    </label>
+    <label class="f">Dot shape
+      <select id="dot"><option value="square">Square (brightest)</option><option value="round">Round LEDs</option></select>
+    </label>
+    <label class="lr toggle"><span>ALL CAPS</span><input type="checkbox" id="caps"></label>
   </div>
 
   <div class="card">
@@ -105,25 +134,25 @@
         <option value="vgrad">Top-to-bottom gradient</option>
       </select>
     </label>
-    <div id="c1Row" class="f"><div class="lr"><span>Colour</span><input type="color" id="c1"></div>
+    <div id="c1Row" class="sub"><label class="lr"><span class="f">Colour</span><input type="color" id="c1"></label>
       <div class="swatches" id="sw1"></div></div>
-    <div id="c2Row" class="lr"><span>Bottom colour</span><input type="color" id="c2"></div>
+    <label id="c2Row" class="lr"><span class="f">Bottom colour</span><input type="color" id="c2"></label>
   </div>
 
   <div class="card">
     <h2>Motion</h2>
     <label class="f">Mode
       <select id="motionMode">
-        <option value="sync">Sensor sync (waits for a swing, matches speed)</option>
+        <option value="sync">Sensor sync (follows your swing)</option>
         <option value="fixed">Fixed rhythm (no sensors)</option>
       </select>
     </label>
-    <div id="syncOpts" class="card" style="padding:0;border:none;gap:12px">
+    <div id="syncOpts" class="sub">
       <label class="f"><div class="lr">Start threshold (peak swing speed) <b id="threshV"></b></div>
         <input type="range" id="thresh" min="0.2" max="1.5" step="0.05">
       </label>
     </div>
-    <div id="fixedOpts" class="card" style="padding:0;border:none;gap:12px">
+    <div id="fixedOpts" class="sub">
       <label class="f"><div class="lr">Half-swing time <b id="fixedThV"></b></div>
         <input type="range" id="fixedTh" min="150" max="900" step="10">
       </label>
@@ -134,43 +163,33 @@
     <label class="f"><div class="lr">Text span (share of swing used) <b id="spanV"></b></div>
       <input type="range" id="span" min="40" max="95" step="1">
     </label>
-    <details>
-      <summary>Fine tuning</summary>
-      <div class="card" style="padding:0;border:none;gap:12px">
-        <label class="f"><div class="lr">Timing trim (fix double image) <b id="trimV"></b></div>
-          <input type="range" id="trim" min="-80" max="80" step="2">
-        </label>
-        <label class="f"><div class="lr">Column width scale <b id="widthV"></b></div>
-          <input type="range" id="width" min="0.5" max="2" step="0.05">
-        </label>
-        <label class="f"><div class="lr">Text height (share of screen) <b id="heightV"></b></div>
-          <input type="range" id="height" min="40" max="96" step="1">
-        </label>
-        <label class="f">Dot shape
-          <select id="dot"><option value="square">Square (brightest)</option><option value="round">Round LEDs</option></select>
-        </label>
-        <div class="lr"><span>Flip direction (if text is mirrored)</span><input type="checkbox" id="flip"></div>
+  </div>
+
+  <div class="card">
+    <details id="calib">
+      <summary><span class="sumh">Calibration</span><span class="sumhint">set once per phone</span></summary>
+      <div class="sub">
+        <p class="note">Work through these in order. Check the sensors first, then fix mirrored text, then the double image, then the column width.</p>
+        <h3>Sensor check</h3>
+        <p class="note">Wave the phone here, then read the results. Green = sideways speed, cyan = rotation, white ticks = swings accepted, red = rejected.</p>
+        <canvas id="trace"></canvas>
+        <dl id="diag"></dl>
+        <button class="btn2" id="diagReset">Reset counts</button>
+        <h3>Adjustments</h3>
+        <label class="lr toggle"><span>Flip direction (if text is mirrored)</span><input type="checkbox" id="flip"></label>
+        <div class="f"><div class="lr">Timing trim (fix double image) <b id="trimV"></b></div>
+          <div class="nudge"><button type="button" data-nudge="trim" data-dir="-1" aria-label="Decrease timing trim">−</button>
+            <input type="range" id="trim" min="-80" max="80" step="2" aria-label="Timing trim">
+            <button type="button" data-nudge="trim" data-dir="1" aria-label="Increase timing trim">+</button></div>
+        </div>
+        <div class="f"><div class="lr">Column width scale <b id="widthV"></b></div>
+          <div class="nudge"><button type="button" data-nudge="width" data-dir="-1" aria-label="Decrease column width">−</button>
+            <input type="range" id="width" min="0.5" max="2" step="0.05" aria-label="Column width scale">
+            <button type="button" data-nudge="width" data-dir="1" aria-label="Increase column width">+</button></div>
+        </div>
       </div>
     </details>
   </div>
-
-  <div class="card">
-    <h2>Sensor check</h2>
-    <div style="font-size:.82rem;color:#999">Wave the phone here, then read the results. Green = sideways speed, cyan = rotation, white ticks = swings accepted, red = rejected.</div>
-    <canvas id="trace" style="width:100%;height:110px;background:#000;border-radius:8px;display:block"></canvas>
-    <div id="diag" style="font-size:.8rem;color:#bbb;line-height:1.5;font-variant-numeric:tabular-nums"></div>
-    <button class="btn2" id="diagReset">Reset counts</button>
-  </div>
-
-  <div class="card">
-    <h2>Presets</h2>
-    <div class="presets" id="presets"></div>
-    <button class="btn2" id="savePreset">Save current as preset</button>
-  </div>
-
-  <button class="btn" id="start">Start</button>
-  <button class="btn2 hidden" id="install">Install app on this phone</button>
-  <div id="status">Checking display and sensors…</div>
 
   <div class="card">
     <details>
@@ -179,10 +198,17 @@
         <li>Dark room, screen brightness at max, phone held upright, wave side to side.</li>
         <li>OLED screens work far better than LCD (true black, no glowing rectangle).</li>
         <li>Smooth, wide, steady swings give the sharpest text. Horizontal sharpness is capped by refresh rate × swing time, so fewer letters or slower, wider swings help.</li>
-        <li>If the left-to-right and right-to-left swings show two offset copies, adjust Timing trim until they line up.</li>
+        <li>If the left-to-right and right-to-left swings show two offset copies, adjust Timing trim (under Calibration) until they line up.</li>
         <li>Double-tap the screen (or use Back) to exit.</li>
       </ul>
     </details>
+  </div>
+
+  <button class="btn2 hidden" id="install">Install app on this phone</button>
+
+  <div id="startBar">
+    <button class="btn" id="start">Start</button>
+    <div id="status">Checking display and sensors…</div>
   </div>
 </div>
 
@@ -192,7 +218,7 @@
 <script>
 'use strict';
 const $ = id => document.getElementById(id);
-const APP_VERSION = '4';
+const APP_VERSION = '5';
 let offlineReady = false;
 const PX_PER_M = 160 / 0.0254;          // CSS px per metre (on Android, 1 CSS px ≈ 1 dp = 1/160 in)
 const LS_LAST = 'povwand.last', LS_PRESETS = 'povwand.presets';
@@ -456,7 +482,6 @@ function refreshLabels() {
   $('trimV').textContent = (S.trim > 0 ? '+' : '') + S.trim + ' ms'; $('widthV').textContent = S.width.toFixed(2) + '×';
   $('heightV').textContent = S.height + '%';
   $('partSecV').textContent = S.partSec.toFixed(2).replace(/0$/, '') + ' s';
-  $('partSecRow').classList.toggle('hidden', S.parts === 'whole');
   $('partLettersRow').classList.toggle('hidden', S.parts !== 'auto');
   $('partLettersV').textContent = S.partLetters;
   $('c1Row').classList.toggle('hidden', S.colourMode === 'rainbow' || S.colourMode === 'letters');
@@ -517,6 +542,7 @@ function rebuild() {
   });
   CREF = Math.max(...PARTS.map(p => p.mx.C));      // all parts share one column pitch
   MX = PARTS[0].mx; COL = PARTS[0].col;
+  $('partSecRow').classList.toggle('hidden', PARTS.length < 2);   // only matters with 2+ parts
   drawPreview();
 }
 function drawPreview() {
@@ -543,7 +569,13 @@ function drawPreview() {
   const frames = Math.max(1, Math.round(frac * 0.3 * refreshHz));
   const per = CREF / frames;
   let msg = (n > 1 ? `${n} parts, widest is ` : '') + `${CREF} columns × ${R} rows. At ${Math.round(refreshHz)} Hz a typical swing gives about ${frames} frames across the text (${per.toFixed(1)} columns per frame).`;
-  if (per > 3.5) msg += ` <span class="warn">That's wide for one pass. Expect some horizontal blur; ${n > 1 || S.parts !== 'whole' ? 'split into shorter parts, ' : 'use fewer letters or Long messages, '}the condensed font, or slower, wider swings.</span>`;
+  if (per > 3.5) {
+    const fixes = [S.parts === 'auto' ? 'lower Letters per part' : S.parts === 'whole' ? 'use Auto split under Long messages' : 'use shorter parts'];
+    if (S.font !== 'condensed') fixes.push('pick the condensed font');
+    fixes.push('swing slower and wider');
+    const list = fixes.length > 2 ? fixes.slice(0, -1).join(', ') + ', or ' + fixes.at(-1) : fixes.join(' or ');
+    msg += ` <span class="warn">That's wide for one pass, so expect some horizontal blur. To sharpen it, ${list}.</span>`;
+  }
   $('info').innerHTML = msg;
 }
 
@@ -569,7 +601,7 @@ function loadPresets() { try { return JSON.parse(localStorage.getItem(LS_PRESETS
 function savePresets(p) { try { localStorage.setItem(LS_PRESETS, JSON.stringify(p)); } catch (e) {} }
 function renderPresets() {
   const box = $('presets'), list = loadPresets(); box.innerHTML = '';
-  if (!list.length) { box.innerHTML = '<span style="color:#666;font-size:.85rem">No presets yet.</span>'; return; }
+  if (!list.length) { box.innerHTML = '<span class="empty">No presets yet.</span>'; return; }
   list.forEach((p, i) => {
     const chip = document.createElement('div'); chip.className = 'chip';
     const a = document.createElement('button'); a.textContent = p.name;
@@ -587,6 +619,9 @@ $('savePreset').onclick = () => {
 };
 
 FIELDS.forEach(f => $(f).addEventListener('input', onChange));
+document.querySelectorAll('[data-nudge]').forEach(b => b.addEventListener('click', () => {
+  const el = $(b.dataset.nudge); b.dataset.dir > 0 ? el.stepUp() : el.stepDown(); onChange();
+}));
 window.addEventListener('resize', () => { if (!running && MX) drawPreview(); });
 
 // ---------- Sensors & display probe ----------
@@ -729,6 +764,7 @@ $('diagReset').onclick = () => tracker.resetStats();
 function diagLoop() {
   if (running) return;
   tracker.minPeak = S.thresh;
+  if (!$('calib').open) { requestAnimationFrame(diagLoop); return; }   // nothing to draw while collapsed
   const cvT = $('trace'), dpr = window.devicePixelRatio || 1;
   const W = Math.round(cvT.clientWidth * dpr), H = Math.round(cvT.clientHeight * dpr);
   if (cvT.width !== W || cvT.height !== H) { cvT.width = W; cvT.height = H; }
@@ -743,11 +779,14 @@ function diagLoop() {
     c.stroke(); c.lineWidth = 1;
   };
   line('v', 3, '#00e676'); line('g', 400, '#00e5ff');
-  const st = tracker.stats, l = st.last;
-  let html = `Accel: ${accelSource} · Gyro: ${tracker.hasGyro ? 'yes (axis ' + tracker.axis + ')' : 'not reported'} · Detecting with: <b>${tracker.mode}</b> · ${Math.round(tracker.rate || 0)} Hz<br>`;
-  html += `Half-swings accepted <b>${st.ok}</b> · too weak ${st.weak} · too fast ${st.short} · too slow ${st.long}<br>`;
-  html += l ? `Last: ${(l.dur * 1000).toFixed(0)} ms, ${l.peak.toFixed(2)} m/s, ${l.peakG.toFixed(0)}°/s, length ${(l.L * 100).toFixed(0)} cm, ${l.ok ? '<span style="color:#00e676">accepted</span>' : '<span style="color:#ff5252">rejected (' + l.why + ')</span>'}`
-            : (sensorSeen ? 'No swings yet. Wave side to side.' : '<span style="color:#ffb74d">No motion data yet. If this stays, Chrome is not giving this page sensor access (it must be opened over https).</span>');
+  const st = tracker.stats, l = st.last, row = (k, v) => `<dt>${k}</dt><dd>${v}</dd>`;
+  let html = row('Sensors', `accel: ${accelSource} · gyro: ${tracker.hasGyro ? 'axis ' + tracker.axis : 'not reported'}`)
+    + row('Detecting with', `<b>${tracker.mode}</b> at ${Math.round(tracker.rate || 0)} Hz`)
+    + row('Half-swings', `<b>${st.ok}</b> accepted · rejected: ${st.weak} too weak, ${st.short} too fast, ${st.long} too slow`)
+    + row('Last swing', l ? `${(l.dur * 1000).toFixed(0)} ms · ${l.peak.toFixed(2)} m/s · ${l.peakG.toFixed(0)}°/s · ${(l.L * 100).toFixed(0)} cm · `
+          + (l.ok ? '<span class="ok">accepted</span>' : `<span class="bad">rejected (${l.why})</span>`)
+        : sensorSeen ? 'none yet, wave side to side' : '<span class="warn">no motion data yet</span>');
+  if (!sensorSeen) html += `<dd class="wide warn">If this stays, Chrome isn't giving this page sensor access (it must be opened over https).</dd>`;
   $('diag').innerHTML = html;
   requestAnimationFrame(diagLoop);
 }

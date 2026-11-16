@@ -48,10 +48,16 @@ Hosted on GitHub Pages at https://dennisneville.github.io/pov/ and installed as 
 - Fixed rhythm mode: no sensors, synthetic cosine swing at a set half-swing time and length.
 
 ## Tuning notes (from real-phone testing)
-- Sensor check panel on the setup screen is the first diagnostic: source, gyro axis, detection mode,
+- Sensor check (inside the collapsed Calibration section) is the first diagnostic: source, gyro axis, detection mode,
   accepted/rejected half-swings and why.
 - Doubled text = Timing trim. Mirrored text = Flip direction. Text span default 75%; 65 to 85% is the useful range.
 - Default 20 rows, condensed bold font, 3 to 6 letters per part reads best.
+
+## Setup screen layout
+- Order: Message (with preview and long-message options), Presets, Text, Colour, Motion, Calibration
+  (collapsed: sensor check, Flip, Timing trim, Column width scale), Tips. Start is pinned to the bottom.
+- Everyday settings go near the top; set-once-per-phone settings go in Calibration.
+- Keep tap targets at least 44 px tall. Use CSS classes, not inline styles.
 
 ## Testing
 - Serve the folder over localhost first (`python3 -m http.server 8000`, then open http://localhost:8000/).
