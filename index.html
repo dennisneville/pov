@@ -51,9 +51,23 @@
 
   <div class="card">
     <label class="f">Message
-      <input type="text" id="text" maxlength="40" autocomplete="off" spellcheck="false">
+      <input type="text" id="text" maxlength="150" autocomplete="off" spellcheck="false">
     </label>
     <div class="icons" id="iconBar"></div>
+    <label class="f">Long messages
+      <select id="parts">
+        <option value="auto">Auto split to fit (recommended)</option>
+        <option value="whole">Show whole message</option>
+        <option value="words">One word per part</option>
+        <option value="slash">Split where I type /</option>
+      </select>
+    </label>
+    <label class="f" id="partLettersRow"><div class="lr">Letters per part (approx.) <b id="partLettersV"></b></div>
+      <input type="range" id="partLetters" min="2" max="12" step="1">
+    </label>
+    <label class="f" id="partSecRow"><div class="lr">Time per part <b id="partSecV"></b></div>
+      <input type="range" id="partSec" min="0.5" max="6" step="0.25">
+    </label>
     <canvas id="preview" height="80"></canvas>
     <div id="info"></div>
   </div>
@@ -178,7 +192,7 @@ const PX_PER_M = 160 / 0.0254;          // CSS px per metre (on Android, 1 CSS p
 const LS_LAST = 'povwand.last', LS_PRESETS = 'povwand.presets';
 
 const DEFAULTS = {
-  text: 'HELLO', rows: 20, font: 'condensed', spacing: 1, caps: true,
+  text: 'HELLO', parts: 'auto', partLetters: 5, partSec: 1.5, rows: 20, font: 'condensed', spacing: 1, caps: true,
   colourMode: 'solid', c1: '#00ff66', c2: '#2979ff',
   motionMode: 'sync', thresh: 0.5, fixedTh: 320, fixedL: 45, span: 75,
   trim: 0, width: 1, height: 82, dot: 'square', flip: false
@@ -235,14 +249,15 @@ function tokenize(msg, caps) {
   return out;
 }
 
-function rasterize(msg, R, fontKey, spacing, caps) {
+function rasterize(msg, R, fontKey, spacing, caps, measureMsg) {
   const toks = tokenize(msg, caps);
+  const mtoks = measureMsg ? tokenize(measureMsg, caps) : toks;
   const os = 4, H = R * os;
   const cv = document.createElement('canvas');
   let c = cv.getContext('2d');
   c.font = FONTS[fontKey](100);
   let asc = 0, desc = 0;
-  for (const k of toks) if (k.t === 'c' && k.s.trim()) {
+  for (const k of mtoks) if (k.t === 'c' && k.s.trim()) {
     const m = c.measureText(k.s);
     asc = Math.max(asc, m.actualBoundingBoxAscent); desc = Math.max(desc, m.actualBoundingBoxDescent);
   }
@@ -417,8 +432,8 @@ class FixedRhythm {
 // ---------- Settings / UI ----------
 let S = { ...DEFAULTS };
 try { Object.assign(S, JSON.parse(localStorage.getItem(LS_LAST) || '{}')); } catch (e) {}
-const FIELDS = ['text', 'rows', 'font', 'spacing', 'caps', 'colourMode', 'c1', 'c2', 'motionMode', 'thresh', 'fixedTh', 'fixedL', 'span', 'trim', 'width', 'height', 'dot', 'flip'];
-const NUMERIC = new Set(['rows', 'spacing', 'thresh', 'fixedTh', 'fixedL', 'span', 'trim', 'width', 'height']);
+const FIELDS = ['text', 'parts', 'partLetters', 'partSec', 'rows', 'font', 'spacing', 'caps', 'colourMode', 'c1', 'c2', 'motionMode', 'thresh', 'fixedTh', 'fixedL', 'span', 'trim', 'width', 'height', 'dot', 'flip'];
+const NUMERIC = new Set(['partLetters', 'partSec', 'rows', 'spacing', 'thresh', 'fixedTh', 'fixedL', 'span', 'trim', 'width', 'height']);
 
 function applyToUI() {
   for (const f of FIELDS) { const el = $(f); if (el.type === 'checkbox') el.checked = !!S[f]; else el.value = S[f]; }
@@ -434,6 +449,10 @@ function refreshLabels() {
   $('fixedLV').textContent = S.fixedL + ' cm'; $('spanV').textContent = S.span + '%';
   $('trimV').textContent = (S.trim > 0 ? '+' : '') + S.trim + ' ms'; $('widthV').textContent = S.width.toFixed(2) + '×';
   $('heightV').textContent = S.height + '%';
+  $('partSecV').textContent = S.partSec.toFixed(2).replace(/0$/, '') + ' s';
+  $('partSecRow').classList.toggle('hidden', S.parts === 'whole');
+  $('partLettersRow').classList.toggle('hidden', S.parts !== 'auto');
+  $('partLettersV').textContent = S.partLetters;
   $('c1Row').classList.toggle('hidden', S.colourMode === 'rainbow' || S.colourMode === 'letters');
   $('c2Row').classList.toggle('hidden', S.colourMode !== 'vgrad');
   $('syncOpts').classList.toggle('hidden', S.motionMode !== 'sync');
@@ -447,32 +466,78 @@ function renderSwatches() {
   }
 }
 
-let MX = null, COL = null, refreshHz = 60;
+let MX = null, COL = null, PARTS = [], CREF = 1, refreshHz = 60;
+function splitParts(text, mode) {
+  let parts;
+  if (mode === 'words') parts = text.split(/\s+/);
+  else if (mode === 'slash') parts = text.split('/');
+  else parts = [text];
+  parts = parts.map(p => p.trim()).filter(p => p.length);
+  return parts.length ? parts : [' '];
+}
+// Auto split: pack whole words greedily into parts no wider than the budget; a word that is
+// too long on its own is broken across parts by letter. "/" always forces a break.
+function autoParts(text) {
+  const measure = text.replace(/\//g, ' ');
+  const width = str => rasterize(str, S.rows, S.font, S.spacing, S.caps, measure).C;
+  const avg = width('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.slice(0, 26)) / 26;
+  const budget = Math.max(4, S.partLetters * avg + 1);
+  const seg = (typeof Intl !== 'undefined' && Intl.Segmenter) ? new Intl.Segmenter() : null;
+  const out = [];
+  for (const group of text.split('/')) {
+    let cur = '';
+    for (const word of group.split(/\s+/).filter(Boolean)) {
+      const cand = cur ? cur + ' ' + word : word;
+      if (width(cand) <= budget) { cur = cand; continue; }
+      if (cur) { out.push(cur); cur = ''; }
+      if (width(word) <= budget * 1.4) { cur = word; continue; }   // let a single word run a bit long
+      // Break an over-long word into even chunks, keeping :icon: tokens whole
+      const pieces = word.split(/(:[a-z]+:)/i).flatMap(x => /^:[a-z]+:$/i.test(x) && ICONS[x.slice(1, -1).toLowerCase()] ? [x]
+        : (seg ? Array.from(seg.segment(x), z => z.segment) : Array.from(x))).filter(Boolean);
+      for (const ch of pieces) {
+        if (cur && width(cur + ch) > budget) { out.push(cur); cur = ch; } else cur += ch;
+      }
+    }
+    if (cur) out.push(cur);
+  }
+  return out.length ? out : [' '];
+}
 function rebuild() {
-  MX = rasterize(S.text || ' ', S.rows, S.font, S.spacing, S.caps);
-  COL = buildColours(MX, S);
+  const text = S.text || ' ';
+  const parts = S.parts === 'auto' ? autoParts(text) : splitParts(text, S.parts);
+  PARTS = parts.map(p => {
+    const mx = rasterize(p, S.rows, S.font, S.spacing, S.caps, text.replace(/\//g, ' '));
+    return { text: p, mx, col: buildColours(mx, S) };
+  });
+  CREF = Math.max(...PARTS.map(p => p.mx.C));      // all parts share one column pitch
+  MX = PARTS[0].mx; COL = PARTS[0].col;
   drawPreview();
 }
 function drawPreview() {
   const cv = $('preview'), dpr = window.devicePixelRatio || 1;
-  const cssW = cv.clientWidth || 300;
-  const cell = Math.max(1, Math.min(cssW * dpr / MX.C, 140 * dpr / MX.R));
-  cv.width = Math.round(cssW * dpr); cv.height = Math.round(cell * MX.R + 8 * dpr);
+  const cssW = cv.clientWidth || 300, R = PARTS[0].mx.R, n = PARTS.length;
+  const gap = n > 1 ? 6 * dpr : 0;
+  const cell = Math.max(1, Math.min(cssW * dpr / CREF, 140 * dpr / R, n > 1 ? 70 * dpr / R : Infinity));
+  cv.width = Math.round(cssW * dpr); cv.height = Math.round(n * cell * R + (n - 1) * gap + 8 * dpr);
   cv.style.height = (cv.height / dpr) + 'px';
   const c = cv.getContext('2d'); c.fillStyle = '#000'; c.fillRect(0, 0, cv.width, cv.height);
-  const x0 = (cv.width - cell * MX.C) / 2, y0 = 4 * dpr, d = cell > 3 ? cell * 0.82 : cell;
-  for (let col = 0; col < MX.C; col++) for (let r = 0; r < MX.R; r++) {
-    const on = MX.bits[col * MX.R + r];
-    if (!on && cell < 4) continue;
-    c.fillStyle = on ? (COL.solid || COL.arr[col * MX.R + r]) : '#161616';
-    c.fillRect(x0 + col * cell, y0 + r * cell, d, d);
-  }
+  const d = cell > 3 ? cell * 0.82 : cell;
+  PARTS.forEach((pt, i) => {
+    const mx = pt.mx, col = pt.col;
+    const x0 = (cv.width - cell * mx.C) / 2, y0 = 4 * dpr + i * (cell * R + gap);
+    for (let k = 0; k < mx.C; k++) for (let r = 0; r < R; r++) {
+      const on = mx.bits[k * R + r];
+      if (!on && cell < 4) continue;
+      c.fillStyle = on ? (col.solid || col.arr[k * R + r]) : '#161616';
+      c.fillRect(x0 + k * cell, y0 + r * cell, d, d);
+    }
+  });
   // Rough sharpness estimate for a typical 0.3 s half-swing
   const span = S.span / 100, frac = 1 - 2 * Math.acos(span) / Math.PI;
   const frames = Math.max(1, Math.round(frac * 0.3 * refreshHz));
-  const per = MX.C / frames;
-  let msg = `${MX.C} columns × ${MX.R} rows. At ${Math.round(refreshHz)} Hz a typical swing gives about ${frames} frames across the text (${per.toFixed(1)} columns per frame).`;
-  if (per > 3.5) msg += ` <span class="warn">That's wide for one pass. Expect some horizontal blur; use fewer letters, the condensed font, or slower, wider swings.</span>`;
+  const per = CREF / frames;
+  let msg = (n > 1 ? `${n} parts, widest is ` : '') + `${CREF} columns × ${R} rows. At ${Math.round(refreshHz)} Hz a typical swing gives about ${frames} frames across the text (${per.toFixed(1)} columns per frame).`;
+  if (per > 3.5) msg += ` <span class="warn">That's wide for one pass. Expect some horizontal blur; ${n > 1 || S.parts !== 'whole' ? 'split into shorter parts, ' : 'use fewer letters or Long messages, '}the condensed font, or slower, wider swings.</span>`;
   $('info').innerHTML = msg;
 }
 
@@ -487,7 +552,7 @@ for (const [name, ic] of Object.entries(ICONS)) {
   const b = document.createElement('button'); b.textContent = ic.g; b.title = name;
   b.onclick = () => {
     const el = $('text'), tok = `:${name}:`, p = el.selectionStart ?? el.value.length;
-    el.value = (el.value.slice(0, p) + tok + el.value.slice(el.selectionEnd ?? p)).slice(0, 40);
+    el.value = (el.value.slice(0, p) + tok + el.value.slice(el.selectionEnd ?? p)).slice(0, 150);
     el.focus(); el.setSelectionRange(p + tok.length, p + tok.length); onChange();
   };
   $('iconBar').appendChild(b);
@@ -550,7 +615,7 @@ setInterval(() => { if (!running) updateStatus(); }, 1000);
 
 // ---------- POV mode ----------
 const cv = $('pov'); const ctx = cv.getContext('2d', { alpha: false });
-let running = false, source = null, prev = null, frameDt = 1 / 60, lastTs = 0, dtHist = [], wakeLock = null, wasFs = false, hintOn = null;
+let partIdx = 0, partStart = 0, idleSince = null, running = false, source = null, prev = null, frameDt = 1 / 60, lastTs = 0, dtHist = [], wakeLock = null, wasFs = false, hintOn = null;
 
 function sizeCanvas() {
   const dpr = window.devicePixelRatio || 1;
@@ -571,8 +636,11 @@ function frame(ts) {
   // Predict where the phone will be while this frame is on screen (~1 frame latency + trim).
   const t = performance.now() / 1000 + frameDt + S.trim / 1000;
   const q = source.query(t, S.flip);
+  const nowS = performance.now() / 1000;
   if (!q) {
     prev = null;
+    if (idleSince === null) idleSince = nowS;
+    if (nowS - idleSince > 0.8) { partIdx = 0; partStart = nowS; }   // a fresh wave starts at part 1
     if (S.motionMode === 'sync') {
       const noData = performance.now() / 1000 - tracker.lastSample > 1;
       setHint(true, noData ? 'no motion data from Chrome · page must be opened over https · double-tap to exit' : 'wave to start · double-tap to exit');
@@ -580,9 +648,16 @@ function frame(ts) {
     requestAnimationFrame(frame); return;
   }
   setHint(false);
+  idleSince = null;
+  // Advance to the next part once its time is up, but only at the start of a new swing.
+  if (PARTS.length > 1 && (!prev || prev.id !== q.id) && nowS - partStart >= S.partSec) {
+    partIdx = (partIdx + 1) % PARTS.length; partStart = nowS;
+  }
+  MX = PARTS[partIdx].mx; COL = PARTS[partIdx].col;
 
   const span = S.span / 100, m = (1 - span) / 2, C = MX.C, R = MX.R;
-  const pos = (q.u - m) / span * C;                 // phone position in text-column units
+  const off = (CREF - C) / 2;                       // centre narrower parts at the shared pitch
+  const pos = (q.u - m) / span * CREF - off;        // phone position in this part's column units
   if (prev && prev.id === q.id) {
     // Draw every column the phone passes over between the previous frame and this one,
     // each at its true offset from the screen centre so they land in the right place in the air.
@@ -590,7 +665,7 @@ function frame(ts) {
     const k0 = Math.max(0, Math.ceil(lo - 0.5)), k1 = Math.min(C - 1, Math.floor(hi - 0.5 - 1e-9));
     if (k1 >= k0) {
       const dpr = window.devicePixelRatio || 1;
-      let pitch = (span * q.L / C) * PX_PER_M * dpr * S.width;
+      let pitch = (span * q.L / CREF) * PX_PER_M * dpr * S.width;
       pitch = Math.min(Math.max(pitch, 2 * dpr), cv.width * 0.4 / (k1 - k0 + 1));
       const usable = cv.height * S.height / 100, cell = usable / R, top = (cv.height - usable) / 2;
       const dotH = cell * 0.86, w = Math.max(pitch * (S.dot === 'round' ? 0.9 : 1), 1.5 * dpr), cx = cv.width / 2;
@@ -622,7 +697,7 @@ async function start() {
   try { await document.documentElement.requestFullscreen({ navigationUI: 'hide' }); wasFs = true; } catch (e) { wasFs = false; }
   try { await screen.orientation.lock('portrait'); } catch (e) {}
   try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
-  sizeCanvas(); prev = null; lastTs = 0; dtHist = []; hintOn = null; running = true;
+  sizeCanvas(); prev = null; partIdx = 0; partStart = performance.now() / 1000; idleSince = null; lastTs = 0; dtHist = []; hintOn = null; running = true;
   requestAnimationFrame(frame);
 }
 function stop() {
