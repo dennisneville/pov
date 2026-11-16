@@ -6,6 +6,9 @@
 <meta name="theme-color" content="#000000">
 <meta name="mobile-web-app-capable" content="yes">
 <title>POV Wand</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
   :root { --bg:#000; --panel:#111; --line:#262626; --text:#eee; --dim:#8a8a8a; --accent:#00e676; }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -166,6 +169,7 @@
   </div>
 
   <button class="btn" id="start">Start</button>
+  <button class="btn2 hidden" id="install">Install app on this phone</button>
   <div id="status">Checking display and sensors…</div>
 
   <div class="card">
@@ -188,6 +192,8 @@
 <script>
 'use strict';
 const $ = id => document.getElementById(id);
+const APP_VERSION = '4';
+let offlineReady = false;
 const PX_PER_M = 160 / 0.0254;          // CSS px per metre (on Android, 1 CSS px ≈ 1 dp = 1/160 in)
 const LS_LAST = 'povwand.last', LS_PRESETS = 'povwand.presets';
 
@@ -609,7 +615,7 @@ function updateStatus() {
   const sensor = !('DeviceMotionEvent' in window) ? 'no motion sensor API'
     : !window.isSecureContext ? 'motion needs https'
     : sensorSeen ? `motion OK (${Math.round(tracker.rate || 0)} Hz)` : 'motion: no data yet';
-  $('status').textContent = `Display ${Math.round(refreshHz)} Hz · ${sensor}`;
+  $('status').textContent = `Display ${Math.round(refreshHz)} Hz · ${sensor} · v${APP_VERSION}${offlineReady ? ' · works offline' : ''}`;
 }
 setInterval(() => { if (!running) updateStatus(); }, 1000);
 
@@ -745,6 +751,21 @@ function diagLoop() {
   $('diag').innerHTML = html;
   requestAnimationFrame(diagLoop);
 }
+
+// ---------- Install & offline ----------
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  navigator.serviceWorker.register('sw.js').then(() => navigator.serviceWorker.ready)
+    .then(() => { offlineReady = true; updateStatus(); }).catch(() => {});
+}
+let installEvt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; $('install').classList.remove('hidden'); });
+window.addEventListener('appinstalled', () => { installEvt = null; $('install').classList.add('hidden'); });
+$('install').onclick = async () => {
+  if (!installEvt) return;
+  installEvt.prompt();
+  try { await installEvt.userChoice; } catch (e) {}
+  installEvt = null; $('install').classList.add('hidden');
+};
 
 applyToUI(); renderPresets(); rebuild(); measureRefresh(); updateStatus(); diagLoop();
 </script>
