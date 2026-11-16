@@ -8,7 +8,14 @@ Hosted on GitHub Pages at https://dennisneville.github.io/pov/ and installed as 
 - `index.html`: the whole app (HTML, CSS, JS in one file, no build step, no dependencies).
 - `sw.js`: offline service worker. Network-first for the page, cache-first for icons and manifest.
   Bump `VERSION` in sw.js and `APP_VERSION` in index.html together on every release.
+  A new index.html shows up without a bump (network-first), but changed icons or manifest will NOT
+  reach installed copies until `VERSION` changes, because they are served from cache.
 - `manifest.webmanifest`, `icon-192.png`, `icon-512.png`: install metadata.
+
+## Release process
+- GitHub Pages serves the `main` branch, so anything merged to `main` is live within a minute or two.
+- Claude works on a feature branch and opens a pull request only when asked. Dennis merges.
+- Before merging: bump both version numbers, then check the status line on the phone shows the new version.
 
 ## Hard constraints
 - Motion sensors (`devicemotion`) only work in a secure context (https or localhost), top-level page.
@@ -28,7 +35,8 @@ Hosted on GitHub Pages at https://dennisneville.github.io/pov/ and installed as 
   - Fallback: leaky-integrated lateral acceleration (tau 0.8 s, trapezoidal integration, phase-lead compensation).
   - Each half-swing modelled as a cosine sweep: u = (1 - cos(pi*phi))/2, using the previous half-swing's duration.
   - Swing length estimated from peak velocity: L = 2 * vpeak * T_half / pi.
-  - Simulated accuracy: gyro mode under 1% of swing width; accel-only about 3 to 4%.
+  - Accuracy from earlier simulation (script not in the repo, so treat as unverified): gyro mode under 1%
+    of swing width; accel-only about 3 to 4%. Re-measure before relying on these.
 - Drawing: each frame draws every text column the phone passed over since the last frame, each at its true
   offset from screen centre (column pitch = span * L / columns, converted at 160 CSS px per inch).
   Text order is world-left-to-right in both swing directions, so no explicit reversal of slices is needed.
@@ -44,13 +52,16 @@ Hosted on GitHub Pages at https://dennisneville.github.io/pov/ and installed as 
 - Default 20 rows, condensed bold font, 3 to 6 letters per part reads best.
 
 ## Testing
+- Serve the folder over localhost first (`python3 -m http.server 8000`, then open http://localhost:8000/).
+  Opening index.html as file:// blocks motion sensors and the service worker.
 - Headless Chrome via Playwright works (`/usr/bin/google-chrome`). Synthetic motion: dispatch
   `new DeviceMotionEvent('devicemotion', {acceleration:{x}, rotationRate:{gamma}})` at ~60 Hz.
 - Tracker can be unit-tested in Node by extracting the code between the TRACKER markers.
 - Real verification has to happen on the phone in a dark room.
 
 ## Ideas not built yet
-- Calibration pattern (single bar + edge markers) to tune Timing trim.
+In rough priority order (Claude's suggestion, not yet confirmed by Dennis):
+- Calibration pattern (single bar + edge markers) to tune Timing trim. Small, and speeds up all other tuning.
 - One-direction mode (draw only on left-to-right swings).
 - Light-painting photo mode for long-exposure cameras (one slow timed sweep, much higher resolution).
 - Image to dot matrix upload.
