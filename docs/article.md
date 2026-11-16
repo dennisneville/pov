@@ -1,69 +1,75 @@
 # Writing in the air with my phone
 
-Most of us have written our name in the air with a sparkler. The light leaves a trail, and for a moment
-you can read it. I wondered if a phone could do the same thing with real words. So I built a small app to
-find out. It's called POV Wand, and it's free to try.
+I'd seen small hardware gadgets that can write words in the air. They use a strip of LEDs on a wand or a
+spinning arm, and as the strip moves, the lights flash in a careful pattern so your eyes see a message
+floating in space. My first thought was that a phone should be able to do the same thing. It has a bright
+screen and motion sensors, and almost everyone carries one.
 
-I had help. An AI assistant called Claude wrote the code. My part was deciding what to build, testing it,
-and saying what needed to change. The testing is where most of the work was.
+I spent a long time looking for an app that did this and never found one, so I decided to build it myself.
+The result is POV Wand, a free web app that runs in Chrome on Android.
+
+I could see it being useful in a very large crowd, like a concert or a carnival, where a short word held up
+in the air is easier to spot than a waving hand. It could also help someone get noticed in an emergency,
+when they need to be seen from a distance in the dark.
 
 ## How it works
 
-Your eyes hold onto light for a split second after it's gone. That's why a sparkler leaves a trail. It's
-also why a movie looks smooth, even though it's really a fast series of still pictures.
+The effect is called persistence of vision. Your eyes hold onto an image for a split second after it
+disappears, which is why a sparkler seems to leave a trail of light behind it.
 
-POV Wand uses the same trick. You type a message and wave the phone from side to side in a dark room. The
-phone's motion sensors track where it is in the swing. At each point, the screen lights up only the thin
-slice of the message that belongs there. Your eyes blend the slices together, and the word seems to float
-in the air. "POV" stands for persistence of vision, which is the name for this effect.
+POV Wand uses the same effect. You type a short message, go somewhere dark and wave the phone from side to
+side. The phone's motion sensors work out where it is in each swing, and at every point the screen lights up
+only the thin slice of the message that belongs there. Your eyes blend those slices together into a word
+that appears to float in the air.
 
-## The catch
+## The main limitation
 
-A phone screen can only redraw itself so many times a second. In one quick swing, even a fast screen only
-gets to draw about 15 to 20 times. That's enough for a short word. It isn't enough for a sentence. If you
-squeeze in too much, the letters smear together.
+A phone screen can only redraw itself a limited number of times per second. During one quick swing, even a
+fast screen gets about 15 to 20 chances to draw. That's plenty for a short word but not nearly enough for a
+full sentence, and if you try to fit in too much, the letters blur together.
 
-So the app breaks long messages into short pieces. It shows a few letters at a time, then moves on to the
-next piece. A birthday message might show "HAPPY" for a few swings, then "BIRTHDAY", then the person's name.
+To work around this, the app splits longer messages into short pieces and shows them one after another. A
+birthday greeting might show "HAPPY" for a few swings, then "BIRTHDAY", then the person's name.
 
-## Finding the right swing
+## Getting the swing right
 
-The hardest part wasn't the code. It was learning how to swing the phone.
+Once the first version worked, most of my time went into learning how to use it well.
 
-Finding the right speed took a lot of trial and error. I would change something, go into a dark room, wave
-the phone, look at the result and try again.
+Working out how fast to swing the phone took a lot of experimenting. I would change a setting, go into a
+dark room, wave the phone, see how it looked and try again.
 
-The biggest step forward came from one setting: how much of the swing the text uses. At the ends of each
-swing, the phone slows down, stops and turns around. Letters drawn there come out squashed. When I told
-the app to use only the middle of the swing, where the phone moves at a steady speed, the words got much
-easier to read. About three quarters of the swing works well.
+One setting made a bigger difference than I expected: how much of each swing the text uses. At the ends of
+every swing, the phone slows down, stops and reverses, and letters drawn there come out squashed. Limiting
+the text to the middle part of the swing, where the phone moves at a fairly steady speed, made the words
+much easier to read. About three quarters of the swing works well.
 
-## Making it easy to use
+## Making it easier to use
 
-The first working version did its job, but it wasn't easy to use. The Start button was at the bottom of a
-long page. The sliders were tiny and hard to hit with a finger. Settings you only need once were mixed in
-with the ones you change every time, like the message and the colour.
+The first working version did its job, but it wasn't easy to use. The Start button sat at the bottom of a
+long page, the sliders were small and fiddly on a phone screen, and settings you only need to adjust once
+were mixed in with the ones you change every time.
 
-So we reorganized the screen. The message and a live preview are now at the top. The Start button stays
-pinned to the bottom of the screen, always in reach. The set-once settings have their own section, listed
-in the order you'd adjust them. The wand itself works the same as before, but it's much easier to pick up
-and use.
+I spent some time reorganizing the screen. The message and a live preview are now at the top, the Start
+button stays pinned to the bottom of the screen, and the one-time settings are grouped in their own section
+in the order you'd adjust them. The wand itself works the same way, but it's much easier to pick up and
+use, and that round of changes was well worth the time.
 
-That was a good reminder for me. Something can work and still be hard to use, and fixing that is worth
-the time.
+## Building it with AI
 
-## Working with AI
+I built POV Wand with Claude, an AI assistant, which wrote the code. My role was to decide what the app
+should do, test it, and explain what needed to change.
 
-Each session with an AI assistant starts fresh. To keep things on track, I kept a short written guide in
-the project. It explains what the app does, the rules it has to follow and what I learned from testing.
-Claude reads it before making any changes, so lessons from one session carry over to the next.
+Each session with an AI assistant starts fresh, so I kept a short written guide in the project. It
+describes what the app does, the rules it has to follow and what I've learned from testing. Claude reads it
+at the start of each session, so lessons from earlier work carry forward instead of getting lost.
 
-The split worked well. Claude was quick at writing and fixing code. But it couldn't stand in a dark room
-and wave a phone around. Only real testing showed what looked good and what didn't.
+This arrangement worked well. Claude was quick at writing and fixing code, but it couldn't stand in a dark
+room and wave a phone around, and real testing was the only way to know what actually looked good.
 
-## Ways to use it
+## Where it could be used
 
-- A glowing sign at a concert or a game
+- Helping your group find you in a big crowd at a concert, festival or carnival
+- Getting noticed in an emergency at night
 - A birthday message at a party
 - A hands-on science class demo of how our eyes and screens work
 
@@ -75,9 +81,9 @@ You'll need an Android phone with Chrome. Other phones may work, but I haven't t
 2. Type a short message.
 3. Turn your screen brightness all the way up.
 4. Go somewhere dark and tap Start.
-5. Hold the phone upright with the screen facing your friends, and swing it smoothly from side to side.
+5. Hold the phone upright with the screen facing the people watching, and swing it smoothly from side to side.
 
 If the words look doubled or backwards, the Calibration section has settings to fix that.
 
-The app and all of its code are free on [GitHub](https://github.com/dennisneville/pov). The written guide I
-used with Claude is there too, in a file called CLAUDE.md, if you're curious how the project came together.
+The app and its code are free on [GitHub](https://github.com/dennisneville/pov). The written guide I used
+with Claude is there too, in a file called CLAUDE.md, if you'd like to see how the project came together.
