@@ -14,8 +14,10 @@ Hosted on GitHub Pages at https://dennisneville.github.io/pov/ and installed as 
 
 ## Release process
 - GitHub Pages serves the `main` branch, so anything merged to `main` is live within a minute or two.
-- Claude works on a feature branch and opens a pull request only when asked. Dennis merges.
-- Before merging: bump both version numbers, then check the status line on the phone shows the new version.
+- Claude works on a feature branch. When Dennis says it's done ("merge it"), Claude pushes it to `main`
+  directly. No pull requests unless Dennis asks for one.
+- Before pushing to `main`: bump both version numbers if index.html, icons or manifest changed. After
+  release, Dennis checks the status line on the phone shows the new version.
 
 ## Hard constraints
 - Motion sensors (`devicemotion`) only work in a secure context (https or localhost), top-level page.
